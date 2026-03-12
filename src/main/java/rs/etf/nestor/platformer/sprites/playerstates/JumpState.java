@@ -19,6 +19,11 @@ public class JumpState extends State {
 
     private double velocity = JUMP_VELOCITY;
 
+    @Override
+    public char indState() {
+        return 'J';
+    }
+
     public JumpState(Player player) {
         super(player);
     }

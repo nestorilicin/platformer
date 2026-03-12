@@ -5,12 +5,17 @@
  */
 package rs.etf.nestor.platformer.sprites;
 
+import javafx.animation.KeyFrame;
+import javafx.animation.KeyValue;
+import javafx.animation.Timeline;
 import javafx.event.EventHandler;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
 import javafx.scene.shape.Circle;
+import javafx.util.Duration;
+import rs.etf.nestor.platformer.main.Main;
 import rs.etf.nestor.platformer.sprites.playerstates.DeadState;
 import rs.etf.nestor.platformer.sprites.playerstates.IdleState;
 import rs.etf.nestor.platformer.sprites.playerstates.JumpState;
@@ -39,6 +44,7 @@ public class Player extends Sprite implements EventHandler<KeyEvent> {
     private Circle body;
     private Circle eye;
 
+    private int lives = 3;
     public Player() {
         state = new IdleState(this);
         getChildren().clear();
@@ -90,6 +96,32 @@ public class Player extends Sprite implements EventHandler<KeyEvent> {
     public void die() {
         state = new DeadState(this);
         body.setFill(DEAD_COLOR);
+        // 7. ANIMACIJA za izgubljeni zivot
+        KeyValue rotateStart = new KeyValue(rotateProperty(), 0);
+        KeyValue rotateEnd = new KeyValue(rotateProperty(), 720);
+        
+        double currentY = getTranslateY();
+        double groundY = Main.WINDOW_HEIGHT - Main.FLOOR_HEIGHT - Main.ENEMY_HEIGHT / 2.;
+        KeyValue current = new KeyValue(translateYProperty(), currentY);
+        KeyValue jump = new KeyValue(translateYProperty(), currentY - 150);
+        KeyValue fall = new KeyValue(translateYProperty(), Main.WINDOW_HEIGHT - Main.FLOOR_HEIGHT + 75);
+        KeyValue ground = new KeyValue(translateYProperty(), groundY);
+        Timeline deathAnimation = new Timeline(
+                new KeyFrame(Duration.seconds(0), rotateStart),
+                new KeyFrame(Duration.seconds(0.5), jump),
+                new KeyFrame(Duration.seconds(1), current),
+                new KeyFrame(Duration.seconds(1.5), rotateEnd, fall),
+                new KeyFrame(Duration.seconds(2), ground)
+        );
+        deathAnimation.setCycleCount(1);
+        deathAnimation.play();
+        deathAnimation.setOnFinished((e) -> {
+            lives--;
+            state = new IdleState(this);
+            body.setFill(IDLE_COLOR);
+            setTranslateY(groundY);
+        });
+        
     }
 
     public boolean isFaceRight() {
@@ -100,6 +132,13 @@ public class Player extends Sprite implements EventHandler<KeyEvent> {
         return !right;
     }
 
+    public int getLives() {
+        return lives;
+    }
+
+    public boolean isNotDead(){
+        return state.indState() != 'D';
+    }
     @Override
     public void update() {
         state.move();

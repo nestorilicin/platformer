@@ -13,6 +13,11 @@ import rs.etf.nestor.platformer.sprites.Player;
  */
 public class RunState extends State {
 
+    @Override
+    public char indState() {
+        return 'R';
+    }
+
     public RunState(Player player) {
         super(player);
     }

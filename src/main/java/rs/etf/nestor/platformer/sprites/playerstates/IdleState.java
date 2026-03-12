@@ -12,7 +12,12 @@ import rs.etf.nestor.platformer.sprites.Player;
  * @author mile
  */
 public class IdleState extends State {
-    
+
+    @Override
+    public char indState() {
+        return 'I';
+    }
+
     public IdleState(Player player) {
         super(player);
     }
