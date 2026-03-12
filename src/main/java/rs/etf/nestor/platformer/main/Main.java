@@ -66,6 +66,9 @@ public class Main extends Application {
     private long lastUpdateTime = 0;
     
     private boolean GAME_OVER = false;
+    // 11. POENI
+    private long points = 0;
+    private Label pointsLabel;
     
     // 12. ZIVOTI
     private Group heartGroup;
@@ -121,7 +124,9 @@ public class Main extends Application {
             int seconds = remainingTime % 60;
             timeLabel.setText(String.format("%02d:%02d", minutes, seconds));
 
-
+            // 11. POENI
+            points++;
+            pointsLabel.setText(String.format("%02d", points));
             // 4. VREME
             if (remainingTime <= 0) {
                 timeLabel.setText("00:00");
@@ -168,8 +173,13 @@ public class Main extends Application {
         timeLabel.setTextFill(Color.RED);
         timeLabel.setFont(new Font(24));
         timeLabel.setTranslateX(WINDOW_WIDTH / 2. - timeLabel.getWidth() / 2);
-        timeLabel.setTranslateY(20);
-
+        timeLabel.setTranslateY(5);
+        // 11. POENI
+        pointsLabel = new Label("00");
+        pointsLabel.setTextFill(Color.YELLOW);
+        pointsLabel.setFont(new Font(24));
+        pointsLabel.setTranslateX(20);
+        pointsLabel.setTranslateY(5);
         // 12. ZIVOTI
         heartGroup = new Group();
         for (int i = 0; i < player.getLives(); i++) {
@@ -185,6 +195,7 @@ public class Main extends Application {
         root.getChildren().add(cloudGroup);
         root.getChildren().add(timeLabel);
         root.getChildren().add(heartGroup);
+        root.getChildren().add(pointsLabel);
         Scene scene = new Scene(root, WINDOW_WIDTH, WINDOW_HEIGHT);
         scene.setOnKeyPressed(player);
         scene.setOnKeyReleased(player);
