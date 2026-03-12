@@ -6,6 +6,8 @@
 package rs.etf.nestor.platformer.cameras;
 
 import javafx.scene.Group;
+import javafx.scene.Node;
+import rs.etf.nestor.platformer.main.Main;
 
 /**
  *
@@ -15,6 +17,15 @@ public class Camera extends Group {
 
     public Camera() {
         getTransforms().clear();
+    }
+    
+    public void centerOn(Node target){
+        double targetX = target.getTranslateX();
+        setTranslateX(Main.WINDOW_WIDTH / 2. - targetX);
+    }
+    public void resetPosition(Node target){
+        //setTranslateX(0);
+        setTranslateX(100 - target.getTranslateX());
     }
 
 }

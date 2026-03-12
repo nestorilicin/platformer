@@ -66,7 +66,7 @@ public class Main extends Application {
     private long lastUpdateTime = 0;
     
     private boolean GAME_OVER = false;
-
+    
     // 12. ZIVOTI
     private Group heartGroup;
     // returns the instance of the game (Main class)
@@ -155,7 +155,7 @@ public class Main extends Application {
             enemies.add(enemy);
         }
 
-        player = new Player();
+        player = new Player(camera);
         player.setTranslateX(100);
         player.setTranslateY(WINDOW_HEIGHT - FLOOR_HEIGHT - ENEMY_HEIGHT / 2.);
         sprites.getChildren().add(player);

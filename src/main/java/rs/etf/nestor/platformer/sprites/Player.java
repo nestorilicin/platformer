@@ -15,6 +15,7 @@ import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
 import javafx.scene.shape.Circle;
 import javafx.util.Duration;
+import rs.etf.nestor.platformer.cameras.Camera;
 import rs.etf.nestor.platformer.main.Main;
 import rs.etf.nestor.platformer.sprites.playerstates.DeadState;
 import rs.etf.nestor.platformer.sprites.playerstates.IdleState;
@@ -45,7 +46,8 @@ public class Player extends Sprite implements EventHandler<KeyEvent> {
     private Circle eye;
 
     private int lives = 3;
-    public Player() {
+    private Camera camera;
+    public Player(Camera cam) {
         state = new IdleState(this);
         getChildren().clear();
         body = new Circle(0, 0, 40);
@@ -54,6 +56,7 @@ public class Player extends Sprite implements EventHandler<KeyEvent> {
         eye.setFill(EYE_COLOR);
         getChildren().add(body);
         getChildren().add(eye);
+        camera = cam;
     }
 
     public double getVelocity() {
@@ -160,9 +163,9 @@ public class Player extends Sprite implements EventHandler<KeyEvent> {
         } else if (event.getCode() == KeyCode.SPACE && event.getEventType() == KeyEvent.KEY_RELEASED) {
             state.jumpReleased();
         } else if (event.getCode() == KeyCode.DIGIT1 && event.getEventType() == KeyEvent.KEY_PRESSED) {
-            
+            camera.resetPosition(this);
         } else if (event.getCode() == KeyCode.DIGIT2 && event.getEventType() == KeyEvent.KEY_PRESSED) {
-            
+            camera.centerOn(this);
         } else if (event.getCode() == KeyCode.DIGIT3 && event.getEventType() == KeyEvent.KEY_PRESSED) {
             
         }
