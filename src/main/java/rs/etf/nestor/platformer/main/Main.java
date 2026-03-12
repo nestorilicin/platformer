@@ -24,6 +24,7 @@ import rs.etf.nestor.platformer.sprites.Background;
 import rs.etf.nestor.platformer.sprites.Enemy;
 import rs.etf.nestor.platformer.sprites.Floor;
 import rs.etf.nestor.platformer.sprites.Player;
+import rs.etf.nestor.platformer.sprites.newsprites.Bird;
 import rs.etf.nestor.platformer.sprites.newsprites.Cloud;
 import rs.etf.nestor.platformer.sprites.newsprites.Heart;
 
@@ -72,6 +73,10 @@ public class Main extends Application {
     
     // 12. ZIVOTI
     private Group heartGroup;
+    
+    // 14. PTICE
+    private Group birdsGroup;
+    private List<Bird> birds;
     // returns the instance of the game (Main class)
     public static Main getInstance() {
         return instance;
@@ -108,6 +113,10 @@ public class Main extends Application {
         // 3. OBLAK
         clouds.forEach(Cloud::update);
         clouds.removeIf(c -> c.getTranslateX() + WINDOW_WIDTH + 100 < 0);
+        
+        // 14. PTICE 
+        birds.forEach(Bird::update);
+        birds.removeIf(b -> b.getTranslateX() + WINDOW_WIDTH + 100 < 0);
         time += 1. / 60;
         secondPassed += deltaTime;
         if (secondPassed > 1.0) {
@@ -123,15 +132,21 @@ public class Main extends Application {
             int minutes = remainingTime / 60;
             int seconds = remainingTime % 60;
             timeLabel.setText(String.format("%02d:%02d", minutes, seconds));
-
-            // 11. POENI
-            points++;
-            pointsLabel.setText(String.format("%02d", points));
-            // 4. VREME
             if (remainingTime <= 0) {
                 timeLabel.setText("00:00");
                 GAME_OVER = true;
             }
+            // 11. POENI
+            points++;
+            pointsLabel.setText(String.format("%02d", points));
+            // 14. PTICE
+            if (remainingTime % 4 == 1) {
+                Bird bird = new Bird(WINDOW_WIDTH, 100 + rand.nextInt(250), 1.75);
+                birds.add(bird);
+                birdsGroup.getChildren().add(bird);
+            }
+            
+            
         }
     }
 
@@ -189,6 +204,10 @@ public class Main extends Application {
             heartGroup.getChildren().add(heart);
 
         }
+        // 14. PTICE
+        birds = new LinkedList<>();
+        birdsGroup = new Group();
+        
         Group root = new Group();
         root.getChildren().add(bg);
         root.getChildren().add(camera);
@@ -196,6 +215,7 @@ public class Main extends Application {
         root.getChildren().add(timeLabel);
         root.getChildren().add(heartGroup);
         root.getChildren().add(pointsLabel);
+        root.getChildren().add(birdsGroup);
         Scene scene = new Scene(root, WINDOW_WIDTH, WINDOW_HEIGHT);
         scene.setOnKeyPressed(player);
         scene.setOnKeyReleased(player);
