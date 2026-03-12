@@ -5,9 +5,16 @@ package rs.etf.nestor.platformer.main;
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
+
+import javafx.scene.control.Label;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
 import rs.etf.nestor.platformer.cameras.Camera;
+
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Random;
+
 import javafx.animation.AnimationTimer;
 import javafx.application.Application;
 import javafx.scene.Group;
@@ -17,6 +24,7 @@ import rs.etf.nestor.platformer.sprites.Background;
 import rs.etf.nestor.platformer.sprites.Enemy;
 import rs.etf.nestor.platformer.sprites.Floor;
 import rs.etf.nestor.platformer.sprites.Player;
+import rs.etf.nestor.platformer.sprites.newsprites.Cloud;
 
 /**
  *
@@ -41,27 +49,39 @@ public class Main extends Application {
     private List<Enemy> enemies;
 
     private static Main instance;
-    
+
     private double time = 0; // game time in seconds
+    private double secondPassed = 0; // trigger
 
     private Camera camera; // camera used for applying transformations
-    
+
+    private final Random rand = new Random();
+    // 3. OBLAK
+    private List<Cloud> clouds;
+    private Group cloudGroup;
+    // 4. VREME
+    private Label timeLabel;
+    private int remainingTime = 90; // startno vreme 90 sekundi
+    private long lastUpdateTime = 0;
+    //
+    private boolean GAME_OVER = false;
+
     // returns the instance of the game (Main class)
-    public static Main getInstance(){
+    public static Main getInstance() {
         return instance;
     }
-    
-    public Camera getCamera(){
+
+    public Camera getCamera() {
         return camera;
     }
-    
+
     public double getTime() {
         return time;
     }
 
-    
+
     // called once per frame to update game state
-    private void update() {
+    private void update(double deltaTime) {
         player.update();
         enemies.forEach(e -> e.update());
 
@@ -71,16 +91,50 @@ public class Main extends Application {
                 player.takeHit();
             }
         });
+        // 3. OBLAK
+        clouds.forEach(Cloud::update);
+        clouds.removeIf(c -> c.getTranslateX() + WINDOW_WIDTH + 100 < 0);
         time += 1. / 60;
+        secondPassed += deltaTime;
+        if(secondPassed > 1.0){
+            remainingTime--;
+            secondPassed = 0;
+            // 4. VREME
+            int minutes = remainingTime / 60;
+            int seconds = remainingTime % 60;
+            timeLabel.setText(String.format("%02d:%02d", minutes, seconds));
+            // 3. OBLAK
+            if(remainingTime % 4 == 0){
+                Cloud cloud = new Cloud(WINDOW_WIDTH, 100 + rand.nextInt(250), 1.75);
+                clouds.add(cloud);
+                cloudGroup.getChildren().add(cloud);
+            }
+            
+            // 4. VREME
+            if(remainingTime <= 0){
+                timeLabel.setText("00:00");
+                GAME_OVER = true;
+            }
+        }
     }
 
     @Override
     public void start(Stage primaryStage) {
         instance = this;
-        
+
         enemies = new LinkedList<>();
         Background bg = new Background(WINDOW_WIDTH, WINDOW_HEIGHT);
 
+        // 3. OBLAK
+        clouds = new LinkedList<>();
+        cloudGroup = new Group();
+        // 4. VREME
+        timeLabel = new Label(String.format("%02d:%02d", remainingTime / 60, remainingTime % 60));
+        timeLabel.setTextFill(Color.RED);
+        timeLabel.setFont(new Font(24));
+        timeLabel.setTranslateX(WINDOW_WIDTH / 2. - timeLabel.getWidth() / 2);
+        timeLabel.setTranslateY(20);
+        
         Floor floor = new Floor(FLOOR_WIDTH, FLOOR_HEIGHT);
         floor.setTranslateY(WINDOW_HEIGHT);
 
@@ -107,7 +161,8 @@ public class Main extends Application {
         Group root = new Group();
         root.getChildren().add(bg);
         root.getChildren().add(camera);
-
+        root.getChildren().add(cloudGroup);
+        root.getChildren().add(timeLabel);
         Scene scene = new Scene(root, WINDOW_WIDTH, WINDOW_HEIGHT);
         scene.setOnKeyPressed(player);
         scene.setOnKeyReleased(player);
@@ -120,7 +175,11 @@ public class Main extends Application {
         new AnimationTimer() {
             @Override
             public void handle(long currentNanoTime) {
-                update();
+                if(lastUpdateTime > 0 && !GAME_OVER) {
+                    double deltaTime = (currentNanoTime - lastUpdateTime) / 1000000000.0; // u sekundama
+                    update(deltaTime);
+                }
+                lastUpdateTime = currentNanoTime;
             }
         }.start();
     }
