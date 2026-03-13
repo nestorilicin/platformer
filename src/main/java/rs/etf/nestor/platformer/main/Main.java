@@ -14,6 +14,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
+import javafx.scene.transform.Scale;
 import javafx.stage.Stage;
 import rs.etf.nestor.platformer.cameras.Camera;
 import rs.etf.nestor.platformer.sprites.*;
@@ -84,7 +85,11 @@ public class Main extends Application {
     // 15. NOVCICI
     private Group coinGroup;
     private List<Coin> coins;
-
+    // 16. IMUNITET
+    private Group immunityGroup;
+    private List<ImmunityCapsule> immunityCapsules;
+    private long immunityTimer = 0;
+    private Label immunityLabel;
     // returns the instance of the game (Main class)
     public static Main getInstance() {
         return instance;
@@ -119,6 +124,19 @@ public class Main extends Application {
         GAME_OVER = true;
         timeLabel.setText("GAME OVER");
         timeLabel.setTranslateX(WINDOW_WIDTH / 2. - timeLabel.getWidth() / 2.);
+    }
+    
+    private void updateImmuneTimer(){
+        immunityTimer--;
+        if(immunityTimer == 0){
+            immunityLabel.setText("");
+            player.setImmune(false);
+        }
+        else immunityLabel.setText("Imunitet " + immunityTimer + "s");
+    }
+    private void startImmuneTimer(){
+        immunityTimer = 10;
+        immunityLabel.setText("Imunitet " + immunityTimer + "s");
     }
     // called once per frame to update game state
     private void update(double deltaTime) {
@@ -192,6 +210,7 @@ public class Main extends Application {
                         enemyIterator.remove();
                         increasePoints(20);
                     } else {
+                        if(player.isImmune()) continue;
                         player.takeHit();
                         loseLife();
                     }
@@ -201,10 +220,23 @@ public class Main extends Application {
             Iterator<Coin> coinIterator = coins.iterator();
             while (coinIterator.hasNext()) {
                 Coin coin = coinIterator.next();
-                if (playerBounds.intersects(coin.getBoundsInParent()) && player.isNotDead()) {
+                if (playerBounds.intersects(coin.getBoundsInParent())) {
                     coinIterator.remove();
                     coinGroup.getChildren().remove(coin);
                     increasePoints(10);
+                    break;
+                }
+            }
+            // 16. kolizija za imunitet
+            Iterator<ImmunityCapsule> immunityCapsuleIterator = immunityCapsules.iterator();
+            while(immunityCapsuleIterator.hasNext()) {
+                ImmunityCapsule immunityCapsule = immunityCapsuleIterator.next();
+                if(playerBounds.intersects(immunityCapsule.getBoundsInParent())) {
+                    player.setImmune(true);
+                    startImmuneTimer();
+                    immunityCapsuleIterator.remove();
+                    immunityGroup.getChildren().remove(immunityCapsule);
+                    break;
                 }
             }
         }
@@ -221,6 +253,8 @@ public class Main extends Application {
         updateAndClean(birds, birdGroup);
         // 15. NOVCICI
         updateAndClean(coins, coinGroup);
+        // 16. IMUNITET
+        updateAndClean(immunityCapsules, immunityGroup);
 
         time += 1. / 60;
         secondPassed += deltaTime;
@@ -257,10 +291,22 @@ public class Main extends Application {
             }
             // 15. NOVCICI
             if (remainingTime % 5 == 1) {
-                Coin coin = new Coin(player.getTranslateX() + 3 * WINDOW_WIDTH / 4. + rand.nextInt(WINDOW_WIDTH / 4), WINDOW_HEIGHT - FLOOR_HEIGHT - Coin.getRadius(), 1.5);
+                Coin coin = new Coin(player.getTranslateX() + 3 * WINDOW_WIDTH / 4. + rand.nextInt(WINDOW_WIDTH / 4), WINDOW_HEIGHT - FLOOR_HEIGHT - Coin.getRadius(), ENEMY_SPEED);
                 coins.add(coin);
                 coinGroup.getChildren().add(coin);
             }
+            // 16. IMUNITET
+            if (remainingTime % 10 == 1){
+                ImmunityCapsule capsule = new ImmunityCapsule(ENEMY_SPEED);
+                capsule.getTransforms().add(new Scale(15, 15));
+                capsule.setTranslateX(player.getTranslateX() + WINDOW_WIDTH + 50);
+                capsule.setTranslateY(WINDOW_HEIGHT - FLOOR_HEIGHT - 30);
+                immunityCapsules.add(capsule);
+                immunityGroup.getChildren().add(capsule);
+            }
+            if(player.isImmune() && immunityTimer > 0){
+                updateImmuneTimer();
+            } 
 
         }
     }
@@ -324,6 +370,14 @@ public class Main extends Application {
         coins = new LinkedList<>();
         coinGroup = new Group();
 
+        // 16. KAPSULE
+        immunityGroup = new Group();
+        immunityCapsules = new LinkedList<>();
+        immunityLabel = new Label("");
+        immunityLabel.setTextFill(Color.CYAN);
+        immunityLabel.setFont(new Font(24));
+        immunityLabel.setTranslateX(WINDOW_WIDTH - 150);
+        immunityLabel.setTranslateY(50);
         // making 100 enemies and adding them to the scene
         for (int i = 0; i < 100; i++) {
             Enemy enemy = new Enemy(ENEMY_SPEED);
@@ -357,13 +411,14 @@ public class Main extends Application {
         root.getChildren().add(timeLabel);
         root.getChildren().add(heartGroup);
         root.getChildren().add(pointsLabel);
-
+        root.getChildren().add(immunityLabel);
 
         sprites.getChildren().add(birdGroup);
         sprites.getChildren().add(cloudGroup);
         sprites.getChildren().add(coinGroup);
         sprites.getChildren().add(platformGroup);
         sprites.getChildren().add(holeGroup);
+        sprites.getChildren().add(immunityGroup);
 
         Scene scene = new Scene(root, WINDOW_WIDTH, WINDOW_HEIGHT);
         scene.setOnKeyPressed(player);

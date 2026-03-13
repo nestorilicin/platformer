@@ -49,6 +49,9 @@ public class Player extends Sprite implements EventHandler<KeyEvent> {
     private final Camera camera;
     private boolean onPlatform;
     private Platform currentPlatform;
+    private boolean immune = false;
+    private final Circle capsule;
+    
     public Player() {
         state = new IdleState(this);
         getChildren().clear();
@@ -59,6 +62,17 @@ public class Player extends Sprite implements EventHandler<KeyEvent> {
         getChildren().add(body);
         getChildren().add(eye);
         camera = Main.getInstance().getCamera();
+        /*glowEffect= new DropShadow();
+        glowEffect.setOffsetY(0f);
+        glowEffect.setOffsetX(0f);
+        glowEffect.setColor(Color.WHITE);
+        glowEffect.setWidth(100);
+        glowEffect.setHeight(100);
+        */
+        capsule = new Circle(0,0,45);
+        capsule.setFill(Color.rgb(255,255,255,0.4));
+        capsule.setStroke(Color.CYAN);
+        capsule.setStrokeWidth(2);
     }
 
     public double getVelocity() {
@@ -160,6 +174,23 @@ public class Player extends Sprite implements EventHandler<KeyEvent> {
 
     public void setCurrentPlatform(Platform currentPlatform) {
         this.currentPlatform = currentPlatform;
+    }
+
+    public boolean isImmune() {
+        return immune;
+    }
+
+    public void setImmune(boolean immune) {
+        this.immune = immune;
+        if(immune){
+            if(!getChildren().contains(capsule)) getChildren().add(capsule);
+        }
+        else 
+            getChildren().remove(capsule);
+    }
+
+    public Circle getBody() {
+        return body;
     }
 
     @Override
