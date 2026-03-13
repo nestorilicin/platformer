@@ -12,6 +12,7 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import rs.etf.nestor.platformer.cameras.Camera;
 
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
@@ -21,14 +22,8 @@ import javafx.application.Application;
 import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
-import rs.etf.nestor.platformer.sprites.Background;
-import rs.etf.nestor.platformer.sprites.Enemy;
-import rs.etf.nestor.platformer.sprites.Floor;
-import rs.etf.nestor.platformer.sprites.Player;
-import rs.etf.nestor.platformer.sprites.newsprites.Bird;
-import rs.etf.nestor.platformer.sprites.newsprites.Cloud;
-import rs.etf.nestor.platformer.sprites.newsprites.Heart;
-import rs.etf.nestor.platformer.sprites.newsprites.Platform;
+import rs.etf.nestor.platformer.sprites.*;
+import rs.etf.nestor.platformer.sprites.newsprites.*;
 
 /**
  *
@@ -83,6 +78,9 @@ public class Main extends Application {
     // 14. PTICE
     private Group birdGroup;
     private List<Bird> birds;
+    // 15. NOVCICI
+    private Group coinGroup;
+    private List<Coin> coins;
 
     // returns the instance of the game (Main class)
     public static Main getInstance() {
@@ -97,12 +95,22 @@ public class Main extends Application {
         return time;
     }
 
-
+    private <T extends Sprite> void updateAndClean(List<T> list, Group group) {
+        list.forEach(Sprite::update);
+        list.removeIf(e -> e.getTranslateX() + WINDOW_WIDTH + 100 < 0);
+        group.getChildren().removeIf(e -> e.getTranslateX() + WINDOW_WIDTH + 100 < 0);
+    }
+    
+    private void increasePoints(int value){
+        points += value;
+        pointsLabel.setText(String.format("%02d", points));
+    }
     // called once per frame to update game state
     private void update(double deltaTime) {
-        // kolizija za neprijatelje
+        
         if (player.isNotDead()) {
             player.update();
+            // kolizija za neprijatelje
             // checking collision between player and enemies
             enemies.forEach(e -> {
                 if (player.getBoundsInParent().intersects(e.getBoundsInParent())) {
@@ -121,9 +129,7 @@ public class Main extends Application {
                 for (Platform platform : platforms) {
                     Bounds platformBounds = platform.getBoundsInParent();
                     boolean isAbovePlatform = playerBottom <= platformBounds.getMinY() + 10;
-                    boolean overlapsHorizontally =
-                            playerBounds.getMaxX() > platformBounds.getMinX() &&
-                                    playerBounds.getMinX() < platformBounds.getMaxX();
+                    boolean overlapsHorizontally = playerBounds.getMaxX() > platformBounds.getMinX() && playerBounds.getMinX() < platformBounds.getMaxX();
                     if (isAbovePlatform && overlapsHorizontally) {
                         double targetY = platformBounds.getMinY() - ENEMY_HEIGHT / 2.; // stane na platformu
                         if (player.getTranslateY() + 5 >= targetY) {
@@ -143,9 +149,7 @@ public class Main extends Application {
                 Platform currentPlatform = player.getCurrentPlatform();
                 if (currentPlatform != null) {
                     Bounds platformBounds = currentPlatform.getBoundsInParent();
-                    boolean outsideHorizontally =
-                            playerBounds.getMaxX() < platformBounds.getMinX() ||
-                                    playerBounds.getMinX() > platformBounds.getMaxX();
+                    boolean outsideHorizontally = playerBounds.getMaxX() < platformBounds.getMinX() || playerBounds.getMinX() > platformBounds.getMaxX();
                     if (outsideHorizontally) {
                         player.setCurrentPlatform(null);
                         player.setOnPlatform(false);
@@ -161,24 +165,30 @@ public class Main extends Application {
                     player.setTranslateY(player.getTranslateY() + 5); // pada na dole
                 }
             }
+            // kolizija za novcice
+            Iterator<Coin> coinIterator = coins.iterator();
+            while(coinIterator.hasNext()){
+                Coin coin = coinIterator.next();
+                if(playerBounds.intersects(coin.getBoundsInParent()) && player.isNotDead()){
+                    coinIterator.remove();
+                    coinGroup.getChildren().remove(coin);
+                    increasePoints(10);
+                }
+            }
         }
-        
+
         enemies.forEach(Enemy::update);
 
 
         // 3. OBLAK
-        clouds.forEach(Cloud::update);
-        clouds.removeIf(c -> c.getTranslateX() + WINDOW_WIDTH + 100 < 0);
-        cloudGroup.getChildren().removeIf(c -> c.getTranslateX() + WINDOW_WIDTH + 100 < 0);
-
+        updateAndClean(clouds, cloudGroup);
         // 9. PLATFORME
-        platforms.forEach(Platform::update);
-        platforms.removeIf(c -> c.getTranslateX() + WINDOW_WIDTH + 100 < 0);
-        platformGroup.getChildren().removeIf(p -> p.getTranslateX() + WINDOW_WIDTH + 100 < 0);
+        updateAndClean(platforms, platformGroup);
         // 14. PTICE 
-        birds.forEach(Bird::update);
-        birds.removeIf(b -> b.getTranslateX() + WINDOW_WIDTH + 100 < 0);
-        birdGroup.getChildren().removeIf(b -> b.getTranslateX() + WINDOW_WIDTH + 100 < 0);
+        updateAndClean(birds, birdGroup);
+        // 15. NOVCICI
+        updateAndClean(coins, coinGroup);
+
         time += 1. / 60;
         secondPassed += deltaTime;
         if (secondPassed > 1.0) {
@@ -199,15 +209,19 @@ public class Main extends Application {
                 GAME_OVER = true;
             }
             // 11. POENI
-            points++;
-            pointsLabel.setText(String.format("%02d", points));
+            increasePoints(1);
             // 14. PTICE
             if (remainingTime % 4 == 1) {
                 Bird bird = new Bird(WINDOW_WIDTH, 100 + rand.nextInt(250), 1.75);
                 birds.add(bird);
                 birdGroup.getChildren().add(bird);
             }
-
+            // 15. NOVCICI
+            if (remainingTime % 5 == 1) {
+                Coin coin = new Coin(3 * WINDOW_WIDTH / 4. + rand.nextInt(WINDOW_WIDTH / 4), WINDOW_HEIGHT - FLOOR_HEIGHT - Coin.getRadius(), 1.5);
+                coins.add(coin);
+                coinGroup.getChildren().add(coin);
+            }
 
         }
     }
@@ -264,6 +278,10 @@ public class Main extends Application {
         birds = new LinkedList<>();
         birdGroup = new Group();
 
+        // 15. NOVCICI
+        coins = new LinkedList<>();
+        coinGroup = new Group();
+
         // making 100 enemies and adding them to the scene
         for (int i = 0; i < 100; i++) {
             Enemy enemy = new Enemy(ENEMY_SPEED);
@@ -300,6 +318,7 @@ public class Main extends Application {
         root.getChildren().add(pointsLabel);
         root.getChildren().add(birdGroup);
         root.getChildren().add(platformGroup);
+        root.getChildren().add(coinGroup);
         Scene scene = new Scene(root, WINDOW_WIDTH, WINDOW_HEIGHT);
         scene.setOnKeyPressed(player);
         scene.setOnKeyReleased(player);
