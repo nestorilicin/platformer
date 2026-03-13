@@ -7,4 +7,5 @@ module rs.etf.nestor.platformer {
 
     opens rs.etf.nestor.platformer to javafx.fxml;
     exports rs.etf.nestor.platformer.main;
+    exports rs.etf.nestor.platformer.cameras;
 }

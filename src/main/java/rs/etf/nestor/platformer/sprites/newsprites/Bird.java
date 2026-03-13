@@ -6,9 +6,6 @@ import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Arc;
-import javafx.scene.shape.Circle;
-import javafx.scene.shape.Line;
-import javafx.scene.shape.Polygon;
 import javafx.util.Duration;
 import rs.etf.nestor.platformer.sprites.Sprite;
 
@@ -17,11 +14,6 @@ public class Bird extends Sprite {
 
     public Bird(double x, double y, double speed) {
         this.speed = speed;
-        /*Circle c1 = new Circle(x, y, 30, Color.WHITE);
-        Circle c2 = new Circle(x, y + 15, 20, Color.WHITE);
-        Circle c3 = new Circle(x + 20, y + 15, 20, Color.WHITE);
-        Circle c4 = new Circle(x - 20, y + 15, 20, Color.WHITE);
-        getChildren().addAll(c1, c2, c3, c4);*/
         Arc leftArc = new Arc();
         leftArc.setCenterX(x - 30);
         leftArc.setCenterY(y);

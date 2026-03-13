@@ -17,6 +17,7 @@ import javafx.scene.shape.Circle;
 import javafx.util.Duration;
 import rs.etf.nestor.platformer.cameras.Camera;
 import rs.etf.nestor.platformer.main.Main;
+import rs.etf.nestor.platformer.sprites.newsprites.Platform;
 import rs.etf.nestor.platformer.sprites.playerstates.DeadState;
 import rs.etf.nestor.platformer.sprites.playerstates.IdleState;
 import rs.etf.nestor.platformer.sprites.playerstates.JumpState;
@@ -42,17 +43,18 @@ public class Player extends Sprite implements EventHandler<KeyEvent> {
     private boolean right = true;
     private double velocity = PLAYER_VELOCITY;
 
-    private Circle body;
-    private Circle eye;
+    private final Circle body;
 
     private int lives = 3;
-    private Camera camera;
+    private final Camera camera;
+    private boolean onPlatform;
+    private Platform currentPlatform;
     public Player(Camera cam) {
         state = new IdleState(this);
         getChildren().clear();
         body = new Circle(0, 0, 40);
         body.setFill(IDLE_COLOR);
-        eye = new Circle(15, 0, 10);
+        Circle eye = new Circle(15, 0, 10);
         eye.setFill(EYE_COLOR);
         getChildren().add(body);
         getChildren().add(eye);
@@ -142,6 +144,25 @@ public class Player extends Sprite implements EventHandler<KeyEvent> {
     public boolean isNotDead(){
         return state.indState() != 'D';
     }
+    public boolean isNotJumping(){
+        return state.indState() != 'J';
+    }
+    public boolean isOnPlatform() {
+        return onPlatform;
+    }
+
+    public void setOnPlatform(boolean onPlatform) {
+        this.onPlatform = onPlatform;
+    }
+
+    public Platform getCurrentPlatform() {
+        return currentPlatform;
+    }
+
+    public void setCurrentPlatform(Platform currentPlatform) {
+        this.currentPlatform = currentPlatform;
+    }
+
     @Override
     public void update() {
         state.move();
@@ -167,7 +188,7 @@ public class Player extends Sprite implements EventHandler<KeyEvent> {
         } else if (event.getCode() == KeyCode.DIGIT2 && event.getEventType() == KeyEvent.KEY_PRESSED) {
             camera.centerOn(this);
         } else if (event.getCode() == KeyCode.DIGIT3 && event.getEventType() == KeyEvent.KEY_PRESSED) {
-            
+            velocity++;
         }
     }
 

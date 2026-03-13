@@ -21,7 +21,7 @@ import javafx.util.Duration;
  */
 public class Enemy extends Sprite {
 
-    private double velocity;
+    private final double velocity;
 
     public Enemy(double velocity) {
         this.velocity = velocity;

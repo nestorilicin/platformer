@@ -15,10 +15,8 @@ import javafx.scene.shape.Rectangle;
  */
 public class FloorBlock extends Sprite {
 
-    private Rectangle block;
-
     public FloorBlock() {
-        block = new Rectangle(-0.5, -0.5, 1, 1);
+        Rectangle block = new Rectangle(-0.5, -0.5, 1, 1);
         block.setFill(Color.SIENNA);
         // 2. TRAVA
         Polygon grass = new Polygon(

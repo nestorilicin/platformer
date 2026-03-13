@@ -6,6 +6,7 @@ package rs.etf.nestor.platformer.main;
  * and open the template in the editor.
  */
 
+import javafx.geometry.Bounds;
 import javafx.scene.control.Label;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
@@ -27,6 +28,7 @@ import rs.etf.nestor.platformer.sprites.Player;
 import rs.etf.nestor.platformer.sprites.newsprites.Bird;
 import rs.etf.nestor.platformer.sprites.newsprites.Cloud;
 import rs.etf.nestor.platformer.sprites.newsprites.Heart;
+import rs.etf.nestor.platformer.sprites.newsprites.Platform;
 
 /**
  *
@@ -34,8 +36,8 @@ import rs.etf.nestor.platformer.sprites.newsprites.Heart;
  */
 public class Main extends Application {
 
-    public static final int WINDOW_WIDTH = 800;
-    public static final int WINDOW_HEIGHT = 450;
+    public static final int WINDOW_WIDTH = 1366;
+    public static final int WINDOW_HEIGHT = 768;
 
     public static final int FLOOR_WIDTH = WINDOW_WIDTH;
     public static final int FLOOR_HEIGHT = 50;
@@ -65,18 +67,23 @@ public class Main extends Application {
     private Label timeLabel;
     private int remainingTime = 90; // startno vreme 90 sekundi
     private long lastUpdateTime = 0;
-    
+
     private boolean GAME_OVER = false;
+
+    // 9. PLATFORME
+    private List<Platform> platforms;
+    private Group platformGroup;
     // 11. POENI
     private long points = 0;
     private Label pointsLabel;
-    
+
     // 12. ZIVOTI
     private Group heartGroup;
-    
+
     // 14. PTICE
-    private Group birdsGroup;
+    private Group birdGroup;
     private List<Bird> birds;
+
     // returns the instance of the game (Main class)
     public static Main getInstance() {
         return instance;
@@ -93,30 +100,85 @@ public class Main extends Application {
 
     // called once per frame to update game state
     private void update(double deltaTime) {
-        if(player.isNotDead()){
+        // kolizija za neprijatelje
+        if (player.isNotDead()) {
             player.update();
             // checking collision between player and enemies
             enemies.forEach(e -> {
                 if (player.getBoundsInParent().intersects(e.getBoundsInParent())) {
                     player.takeHit();
                     heartGroup.getChildren().remove(player.getLives() - 1);
-                    if(player.getLives() == 1){
+                    if (player.getLives() == 1) {
                         GAME_OVER = true;
                     }
                 }
             });
+            // kolizija za platforme
+            Bounds playerBounds = player.getBoundsInParent();
+            double playerBottom = playerBounds.getMaxY();
+            // sletanje na platformu
+            if (!player.isOnPlatform()) {
+                for (Platform platform : platforms) {
+                    Bounds platformBounds = platform.getBoundsInParent();
+                    boolean isAbovePlatform = playerBottom <= platformBounds.getMinY() + 10;
+                    boolean overlapsHorizontally =
+                            playerBounds.getMaxX() > platformBounds.getMinX() &&
+                                    playerBounds.getMinX() < platformBounds.getMaxX();
+                    if (isAbovePlatform && overlapsHorizontally) {
+                        double targetY = platformBounds.getMinY() - ENEMY_HEIGHT / 2.; // stane na platformu
+                        if (player.getTranslateY() + 5 >= targetY) {
+                            player.setTranslateY(targetY);
+                            player.stop();
+                            player.setCurrentPlatform(platform);
+                            player.setOnPlatform(true);
+                        } else if (player.isNotJumping()) {
+                            player.setTranslateY(player.getTranslateY() + 5); // nastavlja da pada
+                        }
+                        break;
+                    }
+                }
+            }
+            // ukidanje platforme ako je spao
+            if (player.isOnPlatform()) {
+                Platform currentPlatform = player.getCurrentPlatform();
+                if (currentPlatform != null) {
+                    Bounds platformBounds = currentPlatform.getBoundsInParent();
+                    boolean outsideHorizontally =
+                            playerBounds.getMaxX() < platformBounds.getMinX() ||
+                                    playerBounds.getMinX() > platformBounds.getMaxX();
+                    if (outsideHorizontally) {
+                        player.setCurrentPlatform(null);
+                        player.setOnPlatform(false);
+                    }
+                }
+            }
+            // pad sa platforme
+            if (!player.isOnPlatform() && player.isNotJumping()) {
+                double floorY = WINDOW_HEIGHT - FLOOR_HEIGHT;
+                if (playerBottom >= floorY) {
+                    player.setTranslateY(floorY - 40); // na floor
+                } else {
+                    player.setTranslateY(player.getTranslateY() + 5); // pada na dole
+                }
+            }
         }
         
-        enemies.forEach(e -> e.update());
+        enemies.forEach(Enemy::update);
 
-        
+
         // 3. OBLAK
         clouds.forEach(Cloud::update);
         clouds.removeIf(c -> c.getTranslateX() + WINDOW_WIDTH + 100 < 0);
-        
+        cloudGroup.getChildren().removeIf(c -> c.getTranslateX() + WINDOW_WIDTH + 100 < 0);
+
+        // 9. PLATFORME
+        platforms.forEach(Platform::update);
+        platforms.removeIf(c -> c.getTranslateX() + WINDOW_WIDTH + 100 < 0);
+        platformGroup.getChildren().removeIf(p -> p.getTranslateX() + WINDOW_WIDTH + 100 < 0);
         // 14. PTICE 
         birds.forEach(Bird::update);
         birds.removeIf(b -> b.getTranslateX() + WINDOW_WIDTH + 100 < 0);
+        birdGroup.getChildren().removeIf(b -> b.getTranslateX() + WINDOW_WIDTH + 100 < 0);
         time += 1. / 60;
         secondPassed += deltaTime;
         if (secondPassed > 1.0) {
@@ -143,10 +205,10 @@ public class Main extends Application {
             if (remainingTime % 4 == 1) {
                 Bird bird = new Bird(WINDOW_WIDTH, 100 + rand.nextInt(250), 1.75);
                 birds.add(bird);
-                birdsGroup.getChildren().add(bird);
+                birdGroup.getChildren().add(bird);
             }
-            
-            
+
+
         }
     }
 
@@ -156,7 +218,7 @@ public class Main extends Application {
 
         enemies = new LinkedList<>();
         Background bg = new Background(WINDOW_WIDTH, WINDOW_HEIGHT);
-        
+
         Floor floor = new Floor(FLOOR_WIDTH, FLOOR_HEIGHT);
         floor.setTranslateY(WINDOW_HEIGHT);
 
@@ -165,15 +227,6 @@ public class Main extends Application {
 
         Group sprites = new Group();
         camera.getChildren().add(sprites);
-
-        // making 100 enemies and adding them to the scene
-        for (int i = 0; i < 100; i++) {
-            Enemy enemy = new Enemy(ENEMY_SPEED);
-            enemy.setTranslateX((1 + i) * 800);
-            enemy.setTranslateY(WINDOW_HEIGHT - FLOOR_HEIGHT - ENEMY_HEIGHT / 2.);
-            sprites.getChildren().add(enemy);
-            enemies.add(enemy);
-        }
 
         player = new Player(camera);
         player.setTranslateX(100);
@@ -189,6 +242,9 @@ public class Main extends Application {
         timeLabel.setFont(new Font(24));
         timeLabel.setTranslateX(WINDOW_WIDTH / 2. - timeLabel.getWidth() / 2);
         timeLabel.setTranslateY(5);
+        // 9. PLATFORME 
+        platforms = new LinkedList<>();
+        platformGroup = new Group();
         // 11. POENI
         pointsLabel = new Label("00");
         pointsLabel.setTextFill(Color.YELLOW);
@@ -206,8 +262,35 @@ public class Main extends Application {
         }
         // 14. PTICE
         birds = new LinkedList<>();
-        birdsGroup = new Group();
-        
+        birdGroup = new Group();
+
+        // making 100 enemies and adding them to the scene
+        for (int i = 0; i < 100; i++) {
+            Enemy enemy = new Enemy(ENEMY_SPEED);
+            enemy.setTranslateX((1 + i) * 800);
+            enemy.setTranslateY(WINDOW_HEIGHT - FLOOR_HEIGHT - ENEMY_HEIGHT / 2.);
+            sprites.getChildren().add(enemy);
+            enemies.add(enemy);
+        }
+        for (int i = 0; i < 100; i++) {
+            double width = 100 + rand.nextInt(WINDOW_WIDTH / 4);
+            double height = 20;
+            double y = WINDOW_HEIGHT - FLOOR_HEIGHT - 100 - rand.nextInt(WINDOW_WIDTH / 8);
+
+            Platform p = new Platform(width, height, ENEMY_SPEED);
+            p.setTranslateX((1 + i) * 800);
+            p.setTranslateY(y);
+            platforms.add(p);
+            platformGroup.getChildren().add(p);
+            if (i % 2 == 1) { // na svakoj drugoj neprijatelj
+                Enemy enemy = new Enemy(ENEMY_SPEED);
+                enemy.setTranslateX(p.getTranslateX() + width / 2.);
+                enemy.setTranslateY(y - ENEMY_HEIGHT / 2.);
+                sprites.getChildren().add(enemy);
+                enemies.add(enemy);
+            }
+
+        }
         Group root = new Group();
         root.getChildren().add(bg);
         root.getChildren().add(camera);
@@ -215,7 +298,8 @@ public class Main extends Application {
         root.getChildren().add(timeLabel);
         root.getChildren().add(heartGroup);
         root.getChildren().add(pointsLabel);
-        root.getChildren().add(birdsGroup);
+        root.getChildren().add(birdGroup);
+        root.getChildren().add(platformGroup);
         Scene scene = new Scene(root, WINDOW_WIDTH, WINDOW_HEIGHT);
         scene.setOnKeyPressed(player);
         scene.setOnKeyReleased(player);
