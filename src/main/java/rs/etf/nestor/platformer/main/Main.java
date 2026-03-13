@@ -6,24 +6,23 @@ package rs.etf.nestor.platformer.main;
  * and open the template in the editor.
  */
 
+import javafx.animation.AnimationTimer;
+import javafx.application.Application;
 import javafx.geometry.Bounds;
+import javafx.scene.Group;
+import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
+import javafx.stage.Stage;
 import rs.etf.nestor.platformer.cameras.Camera;
+import rs.etf.nestor.platformer.sprites.*;
+import rs.etf.nestor.platformer.sprites.newsprites.*;
 
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
-
-import javafx.animation.AnimationTimer;
-import javafx.application.Application;
-import javafx.scene.Group;
-import javafx.scene.Scene;
-import javafx.stage.Stage;
-import rs.etf.nestor.platformer.sprites.*;
-import rs.etf.nestor.platformer.sprites.newsprites.*;
 
 /**
  *
@@ -69,6 +68,9 @@ public class Main extends Application {
     // 9. PLATFORME
     private List<Platform> platforms;
     private Group platformGroup;
+    // 10. RUPE
+    private List<Hole> holes;
+    private Group holeGroup;
     // 11. POENI
     private long points = 0;
     private Label pointsLabel;
@@ -98,13 +100,25 @@ public class Main extends Application {
 
     private <T extends Sprite> void updateAndClean(List<T> list, Group group) {
         list.forEach(Sprite::update);
-        list.removeIf(e -> e.getTranslateX() + WINDOW_WIDTH + 100 < 0);
-        group.getChildren().removeIf(e -> e.getTranslateX() + WINDOW_WIDTH + 100 < 0);
+        list.removeIf(e -> e.getTranslateX() < -5 * WINDOW_WIDTH + WINDOW_HEIGHT);
+        group.getChildren().removeIf(e -> e.getTranslateX() < -5 * WINDOW_WIDTH + WINDOW_HEIGHT);
     }
-    
-    private void increasePoints(int value){
+
+    private void increasePoints(int value) {
         points += value;
         pointsLabel.setText(String.format("%02d", points));
+    }
+
+    private void loseLife() {
+        heartGroup.getChildren().remove(player.getLives() - 1);
+        if (player.getLives() == 1) {
+            game_over();
+        }
+    }
+    private void game_over(){
+        GAME_OVER = true;
+        timeLabel.setText("GAME OVER");
+        timeLabel.setTranslateX(WINDOW_WIDTH / 2. - timeLabel.getWidth() / 2.);
     }
     // called once per frame to update game state
     private void update(double deltaTime) {
@@ -154,31 +168,40 @@ public class Main extends Application {
                     player.setTranslateY(player.getTranslateY() + 5); // pada na dole
                 }
             }
+            // 10. kolizija za rupe
+            for (Hole hole : holes) {
+                Bounds holeBounds = hole.getBoundsInParent();
+                boolean insideHorizontally = playerBounds.getMinX() >= holeBounds.getMinX() && playerBounds.getMaxX() <= holeBounds.getMaxX();
+                boolean insideVertically = playerBottom >= holeBounds.getMinY() && playerBottom <= holeBounds.getMaxY();
+                if (insideHorizontally && insideVertically) {
+                    player.fallInHole();
+                    loseLife();
+                    break; 
+                }
+            }
+
             // 13. napredna kolizija za neprijatelje
             Iterator<Enemy> enemyIterator = enemies.iterator();
-            while(enemyIterator.hasNext()) {
+            while (enemyIterator.hasNext()) {
                 Enemy enemy = enemyIterator.next();
                 Bounds enemyBounds = enemy.getBoundsInParent();
                 double enemyTop = enemyBounds.getMinY();
-                if(playerBounds.intersects(enemyBounds)){
-                    if(playerBottom <= enemyTop + 10){
+                if (playerBounds.intersects(enemyBounds)) {
+                    if (playerBottom <= enemyTop + 10) {
                         sprites.getChildren().remove(enemy);
                         enemyIterator.remove();
                         increasePoints(20);
-                    } else{
+                    } else {
                         player.takeHit();
-                        heartGroup.getChildren().remove(player.getLives() - 1);
-                        if (player.getLives() == 1) {
-                            GAME_OVER = true;
-                        }
+                        loseLife();
                     }
                 }
             }
             // 15. kolizija za novcice
             Iterator<Coin> coinIterator = coins.iterator();
-            while(coinIterator.hasNext()){
+            while (coinIterator.hasNext()) {
                 Coin coin = coinIterator.next();
-                if(playerBounds.intersects(coin.getBoundsInParent()) && player.isNotDead()){
+                if (playerBounds.intersects(coin.getBoundsInParent()) && player.isNotDead()) {
                     coinIterator.remove();
                     coinGroup.getChildren().remove(coin);
                     increasePoints(10);
@@ -186,12 +209,14 @@ public class Main extends Application {
             }
         }
 
-        enemies.forEach(Enemy::update);
+        updateAndClean(enemies, sprites);
 
         // 3. OBLAK
         updateAndClean(clouds, cloudGroup);
         // 9. PLATFORME
         updateAndClean(platforms, platformGroup);
+        // 10. RUPE
+        updateAndClean(holes, holeGroup);
         // 14. PTICE 
         updateAndClean(birds, birdGroup);
         // 15. NOVCICI
@@ -204,7 +229,7 @@ public class Main extends Application {
             secondPassed = 0;
             // 3. OBLAK
             if (remainingTime % 4 == 0) {
-                Cloud cloud = new Cloud(WINDOW_WIDTH, 100 + rand.nextInt(250), 1.75);
+                Cloud cloud = new Cloud(player.getTranslateX() + WINDOW_WIDTH, 100 + rand.nextInt(250), 1.75);
                 clouds.add(cloud);
                 cloudGroup.getChildren().add(cloud);
             }
@@ -214,19 +239,25 @@ public class Main extends Application {
             timeLabel.setText(String.format("%02d:%02d", minutes, seconds));
             if (remainingTime <= 0) {
                 timeLabel.setText("00:00");
-                GAME_OVER = true;
+                game_over();
+            }
+            // 10. RUPE
+            if (remainingTime % 7 == 2) {
+                Hole hole = new Hole(player.getTranslateX() + WINDOW_WIDTH, ENEMY_SPEED);
+                holes.add(hole);
+                holeGroup.getChildren().add(hole);
             }
             // 11. POENI
             increasePoints(1);
             // 14. PTICE
             if (remainingTime % 4 == 1) {
-                Bird bird = new Bird(WINDOW_WIDTH, 100 + rand.nextInt(250), 1.75);
+                Bird bird = new Bird(player.getTranslateX() + WINDOW_WIDTH, 100 + rand.nextInt(250), 1.75);
                 birds.add(bird);
                 birdGroup.getChildren().add(bird);
             }
             // 15. NOVCICI
             if (remainingTime % 5 == 1) {
-                Coin coin = new Coin(3 * WINDOW_WIDTH / 4. + rand.nextInt(WINDOW_WIDTH / 4), WINDOW_HEIGHT - FLOOR_HEIGHT - Coin.getRadius(), 1.5);
+                Coin coin = new Coin(player.getTranslateX() + 3 * WINDOW_WIDTH / 4. + rand.nextInt(WINDOW_WIDTH / 4), WINDOW_HEIGHT - FLOOR_HEIGHT - Coin.getRadius(), 1.5);
                 coins.add(coin);
                 coinGroup.getChildren().add(coin);
             }
@@ -250,7 +281,7 @@ public class Main extends Application {
         sprites = new Group();
         camera.getChildren().add(sprites);
 
-        player = new Player(camera);
+        player = new Player();
         player.setTranslateX(100);
         player.setTranslateY(WINDOW_HEIGHT - FLOOR_HEIGHT - ENEMY_HEIGHT / 2.);
         sprites.getChildren().add(player);
@@ -267,6 +298,9 @@ public class Main extends Application {
         // 9. PLATFORME 
         platforms = new LinkedList<>();
         platformGroup = new Group();
+        // 10. RUPE
+        holes = new LinkedList<>();
+        holeGroup = new Group();
         // 11. POENI
         pointsLabel = new Label("00");
         pointsLabel.setTextFill(Color.YELLOW);
@@ -320,16 +354,17 @@ public class Main extends Application {
         Group root = new Group();
         root.getChildren().add(bg);
         root.getChildren().add(camera);
-        root.getChildren().add(cloudGroup);
         root.getChildren().add(timeLabel);
         root.getChildren().add(heartGroup);
         root.getChildren().add(pointsLabel);
-        root.getChildren().add(birdGroup);
-        root.getChildren().add(platformGroup);
-        root.getChildren().add(coinGroup);
-        
-        camera.getChildren().add(coinGroup);
-        camera.getChildren().add(platformGroup);
+
+
+        sprites.getChildren().add(birdGroup);
+        sprites.getChildren().add(cloudGroup);
+        sprites.getChildren().add(coinGroup);
+        sprites.getChildren().add(platformGroup);
+        sprites.getChildren().add(holeGroup);
+
         Scene scene = new Scene(root, WINDOW_WIDTH, WINDOW_HEIGHT);
         scene.setOnKeyPressed(player);
         scene.setOnKeyReleased(player);

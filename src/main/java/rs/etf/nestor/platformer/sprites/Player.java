@@ -49,7 +49,7 @@ public class Player extends Sprite implements EventHandler<KeyEvent> {
     private final Camera camera;
     private boolean onPlatform;
     private Platform currentPlatform;
-    public Player(Camera cam) {
+    public Player() {
         state = new IdleState(this);
         getChildren().clear();
         body = new Circle(0, 0, 40);
@@ -58,7 +58,7 @@ public class Player extends Sprite implements EventHandler<KeyEvent> {
         eye.setFill(EYE_COLOR);
         getChildren().add(body);
         getChildren().add(eye);
-        camera = cam;
+        camera = Main.getInstance().getCamera();
     }
 
     public double getVelocity() {
@@ -140,7 +140,6 @@ public class Player extends Sprite implements EventHandler<KeyEvent> {
     public int getLives() {
         return lives;
     }
-
     public boolean isNotDead(){
         return state.indState() != 'D';
     }
@@ -194,5 +193,29 @@ public class Player extends Sprite implements EventHandler<KeyEvent> {
 
     public void takeHit() {
         die();
+    }
+    
+    public void fallInHole(){
+        state = new DeadState(this);
+        body.setFill(DEAD_COLOR);
+        
+        double currentY = getTranslateY();
+        double groundY = Main.WINDOW_HEIGHT - Main.FLOOR_HEIGHT - Main.ENEMY_HEIGHT / 2.;
+        KeyValue current = new KeyValue(translateYProperty(), currentY);
+        KeyValue fall = new KeyValue(translateYProperty(), Main.WINDOW_HEIGHT - Main.FLOOR_HEIGHT + 75);
+        KeyValue ground = new KeyValue(translateYProperty(), groundY);
+        Timeline deathAnimation = new Timeline(
+                new KeyFrame(Duration.seconds(0), current),
+                new KeyFrame(Duration.seconds(0.5), fall),
+                new KeyFrame(Duration.seconds(1), ground)
+        );
+        deathAnimation.setCycleCount(1);
+        deathAnimation.play();
+        deathAnimation.setOnFinished((e) -> {
+            lives--;
+            state = new IdleState(this);
+            body.setFill(IDLE_COLOR);
+            setTranslateY(groundY);
+        });
     }
 }
