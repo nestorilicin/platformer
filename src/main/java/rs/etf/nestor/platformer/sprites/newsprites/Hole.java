@@ -11,7 +11,7 @@ public class Hole extends Sprite {
     private final double speed;
     public Hole(double x, double speed) {
         this.speed = speed;
-        Rectangle block = new Rectangle(150, 3 * Main.FLOOR_HEIGHT);
+        Rectangle block = new Rectangle(150, 10 * Main.FLOOR_HEIGHT);
         block.setFill(Color.STEELBLUE);
         getChildren().add(block);
         setTranslateX(x);

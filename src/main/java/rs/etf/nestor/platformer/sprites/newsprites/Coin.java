@@ -19,7 +19,7 @@ public class Coin extends Sprite {
         circle.setFill(Color.GOLD);
         Timeline coinAnimation = new Timeline(
                 new KeyFrame(Duration.seconds(0), new KeyValue(circle.centerYProperty(), y)),
-                new KeyFrame(Duration.seconds(1), new KeyValue(circle.centerYProperty(), y - 5))
+                new KeyFrame(Duration.seconds(1), new KeyValue(circle.centerYProperty(), y - 15))
         );
         coinAnimation.setAutoReverse(true);
         coinAnimation.setCycleCount(Animation.INDEFINITE);
