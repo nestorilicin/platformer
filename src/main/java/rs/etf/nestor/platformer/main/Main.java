@@ -54,6 +54,7 @@ public class Main extends Application {
 
     private Camera camera; // camera used for applying transformations
 
+    private Group sprites;
     private final Random rand = new Random();
     // 3. OBLAK
     private List<Cloud> clouds;
@@ -107,23 +108,11 @@ public class Main extends Application {
     }
     // called once per frame to update game state
     private void update(double deltaTime) {
-        
+        Bounds playerBounds = player.getBoundsInParent();
+        double playerBottom = playerBounds.getMaxY();
         if (player.isNotDead()) {
             player.update();
-            // kolizija za neprijatelje
-            // checking collision between player and enemies
-            enemies.forEach(e -> {
-                if (player.getBoundsInParent().intersects(e.getBoundsInParent())) {
-                    player.takeHit();
-                    heartGroup.getChildren().remove(player.getLives() - 1);
-                    if (player.getLives() == 1) {
-                        GAME_OVER = true;
-                    }
-                }
-            });
-            // kolizija za platforme
-            Bounds playerBounds = player.getBoundsInParent();
-            double playerBottom = playerBounds.getMaxY();
+            // 9. kolizija za platforme
             // sletanje na platformu
             if (!player.isOnPlatform()) {
                 for (Platform platform : platforms) {
@@ -165,7 +154,27 @@ public class Main extends Application {
                     player.setTranslateY(player.getTranslateY() + 5); // pada na dole
                 }
             }
-            // kolizija za novcice
+            // 13. napredna kolizija za neprijatelje
+            Iterator<Enemy> enemyIterator = enemies.iterator();
+            while(enemyIterator.hasNext()) {
+                Enemy enemy = enemyIterator.next();
+                Bounds enemyBounds = enemy.getBoundsInParent();
+                double enemyTop = enemyBounds.getMinY();
+                if(playerBounds.intersects(enemyBounds)){
+                    if(playerBottom <= enemyTop + 10){
+                        sprites.getChildren().remove(enemy);
+                        enemyIterator.remove();
+                        increasePoints(20);
+                    } else{
+                        player.takeHit();
+                        heartGroup.getChildren().remove(player.getLives() - 1);
+                        if (player.getLives() == 1) {
+                            GAME_OVER = true;
+                        }
+                    }
+                }
+            }
+            // 15. kolizija za novcice
             Iterator<Coin> coinIterator = coins.iterator();
             while(coinIterator.hasNext()){
                 Coin coin = coinIterator.next();
@@ -178,7 +187,6 @@ public class Main extends Application {
         }
 
         enemies.forEach(Enemy::update);
-
 
         // 3. OBLAK
         updateAndClean(clouds, cloudGroup);
@@ -239,7 +247,7 @@ public class Main extends Application {
         camera = new Camera();
         camera.getChildren().add(floor);
 
-        Group sprites = new Group();
+        sprites = new Group();
         camera.getChildren().add(sprites);
 
         player = new Player(camera);
@@ -319,6 +327,9 @@ public class Main extends Application {
         root.getChildren().add(birdGroup);
         root.getChildren().add(platformGroup);
         root.getChildren().add(coinGroup);
+        
+        camera.getChildren().add(coinGroup);
+        camera.getChildren().add(platformGroup);
         Scene scene = new Scene(root, WINDOW_WIDTH, WINDOW_HEIGHT);
         scene.setOnKeyPressed(player);
         scene.setOnKeyReleased(player);
