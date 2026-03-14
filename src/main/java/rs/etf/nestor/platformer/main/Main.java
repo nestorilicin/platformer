@@ -330,8 +330,7 @@ public class Main extends Application {
         player = new Player();
         player.setTranslateX(100);
         player.setTranslateY(WINDOW_HEIGHT - FLOOR_HEIGHT - ENEMY_HEIGHT / 2.);
-        sprites.getChildren().add(player);
-
+        
         // 3. OBLAK
         clouds = new LinkedList<>();
         cloudGroup = new Group();
@@ -419,6 +418,7 @@ public class Main extends Application {
         sprites.getChildren().add(platformGroup);
         sprites.getChildren().add(holeGroup);
         sprites.getChildren().add(immunityGroup);
+        sprites.getChildren().add(player);
 
         Scene scene = new Scene(root, WINDOW_WIDTH, WINDOW_HEIGHT);
         scene.setOnKeyPressed(player);
